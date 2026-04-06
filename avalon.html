@@ -421,9 +421,16 @@ function buildSystemPrompt(p){
   const merlinSees=G.players.filter(x=>x.team==='evil'&&x.role!=='莫德雷德').map(x=>x.name);
   let k='';
   if(isEvil&&p.role!=='奥伯伦'){
+    const evilAllies=G.players.filter(x=>x.team==='evil'&&x.role!=='奥伯伦'&&x.index!==p.index);
+    const allyList=evilAllies.map(x=>`${x.name}（${x.role}）`).join('、');
+    const allyNames=evilAllies.map(x=>x.name);
+    const goodPlayers=G.players.filter(x=>x.team==='good').map(x=>x.name);
     const goodWins=G.questResults.filter(r=>r==='success').length;
     const evilWins=G.questResults.filter(r=>r==='fail').length;
-    k=`邪恶同伴：[${evilTeam.join('、')}]。当前比分：正义${goodWins}胜，邪恶${evilWins}胜。
+    k=`你的阵营：邪恶。你的角色：${p.role}。
+你的邪恶同伴（只有以下这些人是你的同伴，其他所有人都是好人/敌人）：${allyList||'无（你是奥伯伦，独自行动）'}。
+确认：${goodPlayers.join('、')}——这些人都是好人，是你的敌人。不要把他们当成同伴。
+当前比分：正义${goodWins}胜，邪恶${evilWins}胜。
 
 你是一个阿瓦隆高手。每次做决策前，像顶级人类玩家一样思考以下维度：
 
@@ -696,18 +703,36 @@ function randomTeam(size){
 // ============ DISCUSSION ============
 async function startDiscussion(){
   G.phase='discussion';
-  const speakers=G.players.filter(p=>p.type==='ai').sort(()=>Math.random()-.5).slice(0,Math.min(3,G.players.filter(p=>p.type==='ai').length));
   const tn=G.proposedTeam.map(i=>G.players[i].name).join('、');
+  const hasHuman=G.players.some(p=>p.type==='human');
+
+  // 真人先发言
+  if(hasHuman){
+    await new Promise(resolve=>{
+      setAction(`<h3>讨论 — 你先发言</h3><div class="discussion-input">
+        <input type="text" id="hs" placeholder="说点什么（或跳过让AI先讨论）…" onkeydown="if(event.key==='Enter'){window._humanDone();}" />
+        <button class="btn" onclick="window._humanDone()">发言</button>
+        <button class="btn" onclick="window._humanDone(true)">跳过</button></div>`);
+      window._humanDone=(skip)=>{
+        if(!skip){
+          const msg=document.getElementById('hs')?.value?.trim();
+          if(msg){const h=G.players.find(p=>p.type==='human');addLog(h.name,msg,h.team==='evil'?'evil-team':'good-team');}
+        }
+        resolve();
+      };
+    });
+  }
+
+  // AI发言（能看到真人刚才说的话）
+  const speakers=G.players.filter(p=>p.type==='ai'&&p.index!==G.leaderIndex).sort(()=>Math.random()-.5).slice(0,Math.min(3,G.players.filter(p=>p.type==='ai'&&p.index!==G.leaderIndex).length));
   for(const p of speakers){
     setAction(`<h3><span class="spinner"></span>${p.name} 正在思考…</h3>`);
-    // 针对阵营的推理提醒
     let reasonHint='';
     if(p.team==='good'){
       reasonHint=`\n你是好人，你的推理必须严格正确：K张失败牌=恰好K个坏人（一人只能出一张牌）。不要说"至少其中之一"这种模糊说法——2张失败就是2个坏人，这是确定的。`;
     }else{
       reasonHint=`\n你在think中要做正确的数学推理（K张失败=K个坏人），但speech中你可以故意模糊、混淆、引导错误方向来保护自己和同伴——这是伪装策略。`;
     }
-    // 获取该玩家之前的公开立场和反思记忆
     const myState=G.playerStates[p.name]||{stances:[],reflection:''};
     let stateHint='';
     if(myState.stances.length>0) stateHint+=`\n你之前公开表达过的立场（保持一致性！）：${myState.stances.slice(-3).join('；')}`;
@@ -720,26 +745,17 @@ async function startDiscussion(){
 回复：{"think":"分析","speech":"发言","stance":"立场"}`,600);
     const speech=parseAISpeech(raw);
     const think=parseAIThink(raw);
-    // 存储公开立场
     const d=parseAIJson(raw);
     if(d?.stance){
-      if(!G.playerStates[p.name])G.playerStates[p.name]={stances:[],suspicions:[],trusted:[]};
+      if(!G.playerStates[p.name])G.playerStates[p.name]={stances:[],reflection:''};
       G.playerStates[p.name].stances.push(`第${G.currentQuest+1}轮：${d.stance}`);
     }
     if(speech){addLog(p.name,speech,p.team==='evil'?'evil-team':'good-team',think);}
     else{const fb=JSON.parse(fallback(p));addLog(p.name,fb.speech,p.team==='evil'?'evil-team':'good-team');}
     await sleep(800);
   }
-  if(G.players.some(p=>p.type==='human')){
-    setAction(`<h3>讨论 — 你的发言</h3><div class="discussion-input">
-      <input type="text" id="hs" placeholder="说点什么（或跳过）…" onkeydown="if(event.key==='Enter')humanSpeak()" />
-      <button class="btn" onclick="humanSpeak()">发言</button>
-      <button class="btn" onclick="startVote()">跳过</button></div>`);
-  }else{await sleep(500);startVote();}
-}
-function humanSpeak(){
-  const msg=document.getElementById('hs').value.trim();
-  if(msg){const h=G.players.find(p=>p.type==='human');addLog(h.name,msg,h.team==='evil'?'evil-team':'good-team');}
+
+  // 进入投票
   startVote();
 }
 
