@@ -335,19 +335,30 @@ function beginGame(){
 }
 
 // ============ AI ============
+let _apiWarningShown=false;
 async function callAI(player,prompt,maxTokens=200,retries=3){
   const sys=buildSystemPrompt(player);
   const headers={'Content-Type':'application/json'};
-  if(G.apiKey){headers['x-api-key']=G.apiKey;headers['anthropic-version']='2023-06-01';headers['anthropic-dangerous-direct-browser-access']='true';}
-  for(let att=0;att<retries;att++){
+  const hasKey=!!G.apiKey;
+  if(hasKey){headers['x-api-key']=G.apiKey;headers['anthropic-version']='2023-06-01';headers['anthropic-dangerous-direct-browser-access']='true';}
+  // 没有key时减少重试次数，快速失败
+  const maxRetries=hasKey?retries:1;
+  for(let att=0;att<maxRetries;att++){
     try{
       const fetchP=fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,
         body:JSON.stringify({model:'claude-opus-4-20250514',max_tokens:maxTokens,system:sys,messages:[{role:'user',content:prompt}]})});
       const timeoutP=new Promise((_,reject)=>setTimeout(()=>reject(new Error('超时')),45000));
       const r=await Promise.race([fetchP,timeoutP]);
       if(r.status===429){
-        addLog('⚠ 系统',`${player.name}的请求被限流，${(att+1)*3}秒后重试（${att+1}/${retries}）…`,'system');
+        addLog('⚠ 系统',`${player.name}的请求被限流，${(att+1)*3}秒后重试（${att+1}/${maxRetries}）…`,'system');
         await sleep((att+1)*3000);continue;
+      }
+      if(r.status===401&&!hasKey){
+        if(!_apiWarningShown){
+          addLog('⚠ 系统','认证失败——在本地或GitHub Pages运行时需要填写API Key。请刷新页面并在设置中填入你的Anthropic API Key。','system');
+          _apiWarningShown=true;
+        }
+        return fallback(player);
       }
       if(!r.ok){
         addLog('⚠ 系统',`${player.name}的请求失败（HTTP ${r.status}），使用备用回复。`,'system');
@@ -359,15 +370,22 @@ async function callAI(player,prompt,maxTokens=200,retries=3){
       return fallback(player);
     }catch(e){
       const reason=e.message||'网络错误';
-      if(att<retries-1){
-        addLog('⚠ 系统',`${player.name}：${reason}，重试中（${att+1}/${retries}）…`,'system');
+      // 没有key且是网络错误，大概率是非artifact环境
+      if(!hasKey&&reason==='Failed to fetch'){
+        if(!_apiWarningShown){
+          addLog('⚠ 系统','无法连接API——如果不是在claude.ai中打开，请刷新页面并填写API Key。在claude.ai的artifact中可以不填key直接使用。','system');
+          _apiWarningShown=true;
+        }
+        return fallback(player);
+      }
+      if(att<maxRetries-1){
+        addLog('⚠ 系统',`${player.name}：${reason}，重试中（${att+1}/${maxRetries}）…`,'system');
         await sleep(2000);continue;
       }
       addLog('⚠ 系统',`${player.name}：${reason}，使用备用回复。`,'system');
       return fallback(player);
     }
   }
-  addLog('⚠ 系统',`${player.name}：重试${retries}次均失败，使用备用回复。`,'system');
   return fallback(player);
 }
 
