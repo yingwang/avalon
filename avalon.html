@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>阿瓦隆 — 历史风云</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+:root{--bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a25;--border:#2a2a3a;--text:#e8e6e1;--text-dim:#8a8890;--gold:#c9a84c;--gold-dim:#8a7a3a;--evil:#8b2942;--evil-glow:#c4365a;--good:#2a6e8b;--good-glow:#3a9ec8;--success:#3a8a5c;--fail:#8b3a3a;--accent:#6a5acd}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans SC',sans-serif;font-size:16px;line-height:1.7;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at 20% 20%,rgba(42,110,139,.06) 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(139,41,66,.06) 0%,transparent 50%);pointer-events:none;z-index:0}
+#app{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:20px}
+h1,h2,h3{font-family:'Noto Serif SC',serif;font-weight:700}
+h1{font-size:2.4em;text-align:center;color:var(--gold);text-shadow:0 0 40px rgba(201,168,76,.2);margin:30px 0 10px}
+h1 span{font-weight:400;font-size:.4em;display:block;color:var(--text-dim);letter-spacing:.3em;margin-top:5px}
+.subtitle{text-align:center;color:var(--text-dim);margin-bottom:30px;font-size:1.05em}
+.setup-panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:30px;margin-bottom:20px}
+.setup-panel h2{color:var(--gold);font-size:1.3em;margin-bottom:20px}
+.form-row{display:flex;align-items:center;gap:15px;margin-bottom:15px;flex-wrap:wrap}
+.form-row label{font-family:'Noto Serif SC',serif;font-size:.9em;color:var(--text-dim);min-width:80px}
+.form-row .hint{font-size:.75em;color:var(--border);margin-left:4px}
+input,select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:4px;font-family:'Noto Sans SC',sans-serif;font-size:.85em;outline:none;transition:border-color .2s}
+input:focus,select:focus{border-color:var(--gold-dim)}
+input[type="password"]{width:320px}
+.player-slots{display:flex;flex-direction:column;gap:8px;margin:15px 0}
+.player-slot{display:flex;align-items:center;gap:10px;background:var(--surface2);padding:8px 14px;border-radius:4px;border:1px solid var(--border)}
+.player-slot .seat{font-family:'Noto Serif SC',serif;color:var(--gold-dim);font-size:.8em;width:24px}
+.player-slot input{flex:1;border:none;background:transparent}
+.player-slot select{width:80px}
+.btn{font-family:'Noto Serif SC',serif;font-weight:600;font-size:.9em;letter-spacing:.05em;padding:10px 28px;border:1px solid var(--gold-dim);background:transparent;color:var(--gold);border-radius:4px;cursor:pointer;transition:all .2s}
+.btn:hover{background:rgba(201,168,76,.1);border-color:var(--gold)}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.btn.primary{background:rgba(201,168,76,.15)}
+.btn.evil{border-color:var(--evil);color:var(--evil-glow)}
+.btn.evil:hover{background:rgba(139,41,66,.15)}
+.btn.good{border-color:var(--good);color:var(--good-glow)}
+.btn.good:hover{background:rgba(42,110,139,.15)}
+.game-header{display:flex;justify-content:space-between;align-items:center;padding:15px 20px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:15px}
+.quest-track{display:flex;gap:8px}
+.quest-token{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Noto Serif SC',serif;font-weight:700;font-size:.85em;border:2px solid var(--border);background:var(--surface2);color:var(--text-dim);transition:all .3s}
+.quest-token.success{background:var(--success);border-color:var(--success);color:#fff}
+.quest-token.fail{background:var(--fail);border-color:var(--fail);color:#fff}
+.quest-token.current{border-color:var(--gold);color:var(--gold);box-shadow:0 0 12px rgba(201,168,76,.3)}
+.vote-track{display:flex;gap:5px;align-items:center}
+.vote-track span{font-family:'Noto Serif SC',serif;font-size:.75em;color:var(--text-dim);margin-right:5px}
+.vote-pip{width:12px;height:12px;border-radius:50%;border:1px solid var(--border);background:var(--surface2)}
+.vote-pip.used{background:var(--evil);border-color:var(--evil)}
+.players-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px}
+.player-chip{padding:6px 14px;background:var(--surface);border:1px solid var(--border);border-radius:20px;font-family:'Noto Sans SC',sans-serif;font-size:.85em;color:var(--text-dim);transition:all .2s;cursor:default}
+.player-chip.leader{border-color:var(--gold);color:var(--gold)}
+.player-chip.leader::before{content:'♛ '}
+.player-chip.selected{border-color:var(--good-glow);color:var(--good-glow);background:rgba(42,110,139,.1)}
+.player-chip.on-team{border-color:var(--accent);color:#b0a0f0}
+.player-chip.human-tag::after{content:' ★';color:var(--gold-dim)}
+.player-chip.clickable{cursor:pointer}
+.player-chip.clickable:hover{border-color:var(--good-glow)}
+.game-log{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:15px;max-height:500px;overflow-y:auto}
+.game-log::-webkit-scrollbar{width:6px}
+.game-log::-webkit-scrollbar-track{background:var(--surface)}
+.game-log::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.log-entry{padding:8px 0;border-bottom:1px solid rgba(42,42,58,.5);animation:fadeIn .3s ease}
+.log-entry:last-child{border-bottom:none}
+.log-entry .speaker{font-family:'Noto Serif SC',serif;font-weight:600;font-size:.85em}
+.log-entry .speaker.system{color:var(--gold-dim)}
+.log-entry .speaker.good-team{color:var(--good-glow)}
+.log-entry .speaker.evil-team{color:var(--evil-glow)}
+.log-entry .speaker.neutral{color:var(--text-dim)}
+.log-entry .msg{margin-top:3px;color:var(--text);font-size:.95em}
+.think-toggle{display:inline-block;margin-left:6px;font-size:.7em;color:var(--border);cursor:pointer;font-family:'Noto Sans SC',sans-serif;vertical-align:middle;transition:color .2s}
+.think-toggle:hover{color:var(--text-dim)}
+.think-block{display:none;margin-top:5px;padding:6px 10px;background:rgba(255,255,255,.02);border-left:2px solid var(--border);font-size:.8em;color:var(--text-dim);line-height:1.5;border-radius:0 4px 4px 0;white-space:pre-wrap}
+.think-block.open{display:block}
+.action-panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px}
+.action-panel h3{color:var(--gold);font-size:1em;margin-bottom:12px}
+.action-buttons{display:flex;gap:10px;flex-wrap:wrap}
+.role-reveal{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:15px 20px;margin-bottom:15px;text-align:center}
+.role-reveal .role-name{font-family:'Noto Serif SC',serif;font-size:1.3em;font-weight:700}
+.role-reveal .role-name.good{color:var(--good-glow)}
+.role-reveal .role-name.evil{color:var(--evil-glow)}
+.role-reveal .role-info{color:var(--text-dim);margin-top:5px}
+.game-over-banner{text-align:center;padding:30px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:15px}
+.game-over-banner h2{font-size:1.8em;margin-bottom:10px}
+.game-over-banner h2.good-wins{color:var(--good-glow)}
+.game-over-banner h2.evil-wins{color:var(--evil-glow)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.hidden{display:none !important}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.discussion-input{display:flex;gap:10px;margin-top:10px}
+.discussion-input input{flex:1;padding:10px 14px}
+
+.history-panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:15px 20px;margin-bottom:15px}
+.history-panel h3{font-family:'Noto Serif SC',serif;color:var(--gold-dim);font-size:.85em;margin-bottom:10px;cursor:pointer;user-select:none}
+.history-panel h3:hover{color:var(--gold)}
+.history-panel h3::before{content:'▸ ';font-size:.8em}
+.history-panel h3.open::before{content:'▾ '}
+.history-body{display:none}
+.history-body.open{display:block}
+.history-round{margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(42,42,58,.4)}
+.history-round:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.history-round .round-title{font-family:'Noto Serif SC',serif;font-size:.85em;font-weight:600;margin-bottom:4px}
+.history-round .round-title.success{color:var(--good-glow)}
+.history-round .round-title.fail{color:var(--evil-glow)}
+.history-round .round-detail{font-size:.8em;color:var(--text-dim);line-height:1.6}
+.history-round .team-members{color:var(--text);font-size:.82em}
+.history-round .vote-record{margin-top:3px}
+.history-round .vote-record .v-approve{color:var(--good-glow)}
+.history-round .vote-record .v-reject{color:var(--evil-glow)}
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>阿瓦隆<span>历史风云 · 忠诚与背叛的试炼</span></h1>
+  <div id="setup-screen">
+    <p class="subtitle">天下大势，分久必合，合久必分。谁是忠臣，谁是奸佞？</p>
+    <div class="setup-panel">
+      <h2>游戏设置</h2>
+      <div class="form-row">
+        <label>API Key</label>
+        <input type="password" id="api-key" placeholder="sk-ant-...（留空则使用内置认证）" style="width:380px" />
+        <span class="hint">本地/GitHub部署需填写</span>
+      </div>
+      <div class="form-row">
+        <label>人数</label>
+        <select id="player-count" onchange="renderPlayerSlots()">
+          <option value="5">5人局</option>
+          <option value="6">6人局</option>
+          <option value="7" selected>7人局</option>
+          <option value="8">8人局</option>
+          <option value="9">9人局</option>
+          <option value="10">10人局</option>
+        </select>
+      </div>
+      <div id="player-slots" class="player-slots"></div>
+      <div class="form-row" style="margin-top:20px">
+        <button class="btn primary" onclick="startGame()">开始远征</button>
+      </div>
+    </div>
+  </div>
+  <div id="game-screen" class="hidden">
+    <div class="game-header">
+      <div class="quest-track" id="quest-track"></div>
+      <div class="vote-track" id="vote-track"><span>否决：</span></div>
+    </div>
+    <div id="role-reveal" class="role-reveal hidden"></div>
+    <div class="players-bar" id="players-bar"></div>
+    <div id="history-panel" class="history-panel hidden"></div>
+    <div class="game-log" id="game-log"></div>
+    <div class="action-panel" id="action-panel"></div>
+    <div id="game-over" class="game-over-banner hidden"></div>
+  </div>
+</div>
+<script>
+const QUEST_SIZES={5:[2,3,2,3,3],6:[2,3,4,3,4],7:[2,3,3,4,4],8:[3,4,4,5,5],9:[3,4,4,5,5],10:[3,4,4,5,5]};
+const EVIL_COUNT={5:2,6:2,7:3,8:3,9:3,10:4};
+const DOUBLE_FAIL={5:false,6:false,7:true,8:true,9:true,10:true};
+const ROLES_GOOD=['梅林','派西维尔','忠臣','忠臣','忠臣','忠臣'];
+const ROLES_EVIL=['莫德雷德','刺客','莫甘娜','奥伯伦'];
+
+const CHARACTERS=[
+  {name:'张居正',personality:'大明首辅，铁腕改革派。说话沉稳有力，逻辑缜密，习惯从全局出发分析，有"不得不如此"的决断感。喜欢说"以大局论之""此事须当机立断"。擅长抓主要矛盾，不纠缠细节。'},
+  {name:'秦始皇',personality:'千古一帝，霸气外露但并非莽夫。说话简短有力，不容置疑，自称"朕"。判断极快极狠，一旦认定就不会动摇。对犹豫不决的人不耐烦。会说"朕意已决""多说无益"。'},
+  {name:'武则天',personality:'唯一女帝，极擅观人术。说话温和但暗藏机锋，擅长用问句引导别人暴露真实想法。面对质疑时不急不怒，反而微笑反问。会说"哦？是么？""倒想听听你的高见"。看似随和实则掌控全局。'},
+  {name:'苏轼',personality:'北宋大才子，豁达洒脱。说话风趣幽默，喜欢用比喻和典故，紧张局面也能冒出金句化解。判断靠直觉但常常很准。被怀疑时不急不恼反而自嘲。会说"这事有意思""且听苏某一言"。'},
+  {name:'霍去病',personality:'冠军侯，十八岁封侯的天才将领。说话干脆利落，行动派，不喜欢磨叽的讨论。判断快，信直觉，"打了再说"的风格。重义气，一旦认定队友就全力支持。会说"废话少说""干就完了"。'},
+  {name:'李清照',personality:'千古才女，表面婉约实则刚烈果决。观察细腻，能从别人一句话里听出弦外之音。说话不疾不徐但句句精准，质疑人时引用对方之前说过的话。会说"方才有人说……如今又变了？""此言差矣"。'},
+  {name:'朱棣',personality:'永乐大帝，靖难之役夺位的狠角色。城府极深，表面豪爽实则算计精密。说话有上位者气度但不端架子，喜欢试探。对背叛零容忍，一旦锁定目标绝不放过。会说"有趣""本王倒要看看"。'},
+  {name:'诸葛亮',personality:'卧龙先生，算无遗策。说话从容淡定像在讲道理，逻辑链条极其清晰，能从投票数据和发言矛盾中推演出完整的真相。语气温和但结论致命。会说"依亮之见""且慢，此中有诈"。'},
+  {name:'李世民',personality:'天策上将，开创贞观之治。有明君气度，善于纳谏也善于决断。说话既有威严也有亲和力，擅长团结人心建立同盟。分析全局但也重视每个人的意见。会说"朕以为""诸位且听"。'},
+  {name:'曹操',personality:'乱世枭雄，疑心极重但用人不疑。说话直白有力，不喜欢拐弯抹角，但每句话背后都有目的。擅长从利益角度分析动机——谁做了什么对谁有好处。多疑但一旦抓住破绽就一击必杀。会说"宁可……也不可……""孤倒想问一句"。'},
+];
+
+let G={};
+
+function renderPlayerSlots(){
+  const n=+document.getElementById('player-count').value;
+  const el=document.getElementById('player-slots');
+  el.innerHTML='';
+  for(let i=0;i<n;i++){
+    const ch=CHARACTERS[i]||{name:`玩家${i+1}`,personality:''};
+    const div=document.createElement('div');
+    div.className='player-slot';
+    div.innerHTML=`<span class="seat">${i+1}</span>
+      <input type="text" value="${ch.name}" id="pname-${i}" placeholder="角色名" />
+      <select id="ptype-${i}">
+        <option value="ai" selected>AI</option>
+        <option value="human">真人</option>
+      </select>`;
+    el.appendChild(div);
+  }
+}
+renderPlayerSlots();
+
+function assignRoles(players){
+  const n=players.length,nEvil=EVIL_COUNT[n],nGood=n-nEvil;
+  const allRoles=[...ROLES_GOOD.slice(0,nGood),...ROLES_EVIL.slice(0,nEvil)];
+  const sh=[...Array(n).keys()];
+  for(let i=sh.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[sh[i],sh[j]]=[sh[j],sh[i]];}
+  players.forEach((p,idx)=>{p.role=allRoles[sh[idx]];p.team=sh[idx]<nGood?'good':'evil';});
+}
+
+function startGame(){
+  const apiKey=document.getElementById('api-key').value.trim();
+  const n=+document.getElementById('player-count').value;
+  const players=[];
+  for(let i=0;i<n;i++){
+    const ch=CHARACTERS[i]||{name:`玩家${i+1}`,personality:''};
+    const name=document.getElementById(`pname-${i}`).value.trim()||ch.name;
+    const type=document.getElementById(`ptype-${i}`).value;
+    // 如果用了原角色名，直接用对应personality
+    const exactMatch=CHARACTERS.find(c=>c.name===name);
+    let personality='';
+    if(exactMatch){
+      personality=exactMatch.personality;
+    }else if(ch.personality){
+      // 改了名字但slot位置有角色——把personality里的原名替换成新名
+      personality=ch.personality.replaceAll(ch.name,name);
+    }
+    players.push({name,type,role:'',team:'',index:i,personality});
+  }
+  assignRoles(players);
+  G={apiKey,players,n,questSizes:QUEST_SIZES[n],questResults:[],currentQuest:0,
+    leaderIndex:Math.floor(Math.random()*n),voteTrack:0,phase:'role-reveal',
+    proposedTeam:[],votes:{},missionVotes:{},log:[],voteThinks:{},missionThinks:{},questHistory:[],voteHistory:[],
+    playerStates:{} // 每个AI的策略状态记忆
+  };
+  document.getElementById('setup-screen').classList.add('hidden');
+  document.getElementById('game-screen').classList.remove('hidden');
+  renderQuestTrack();renderVoteTrack();renderPlayers();showRoleReveal();
+}
+
+// ============ RENDER ============
+function renderQuestTrack(){
+  const el=document.getElementById('quest-track');el.innerHTML='';
+  for(let i=0;i<5;i++){const d=document.createElement('div');d.className='quest-token';
+    if(i<G.questResults.length)d.classList.add(G.questResults[i]);
+    if(i===G.currentQuest&&i>=G.questResults.length)d.classList.add('current');
+    d.textContent=G.questSizes[i];el.appendChild(d);}
+}
+function renderVoteTrack(){
+  const el=document.getElementById('vote-track');el.innerHTML='<span>否决：</span>';
+  for(let i=0;i<5;i++){const p=document.createElement('div');p.className='vote-pip'+(i<G.voteTrack?' used':'');el.appendChild(p);}
+}
+function renderPlayers(sel,onSel){
+  const el=document.getElementById('players-bar');el.innerHTML='';
+  G.players.forEach((p,i)=>{const c=document.createElement('div');c.className='player-chip';
+    if(i===G.leaderIndex)c.classList.add('leader');
+    if(G.proposedTeam.includes(i))c.classList.add('on-team');
+    if(p.type==='human')c.classList.add('human-tag');
+    if(sel&&sel.includes(i)){c.classList.add('clickable');if(G.proposedTeam.includes(i))c.classList.add('selected');c.onclick=()=>onSel(i);}
+    c.textContent=p.name;el.appendChild(c);});
+}
+function addLog(speaker,msg,cls='neutral',think=null){
+  G.log.push({speaker,msg,cls});
+  const el=document.getElementById('game-log');
+  const e=document.createElement('div');e.className='log-entry';
+  const tid='t-'+Date.now()+'-'+Math.random().toString(36).slice(2,5);
+  const th=think?` <span class="think-toggle" onclick="document.getElementById('${tid}').classList.toggle('open')">[思考]</span><div class="think-block" id="${tid}">${think}</div>`:'';
+  e.innerHTML=`<div class="speaker ${cls}">${speaker}${th}</div><div class="msg">${msg}</div>`;
+  el.appendChild(e);el.scrollTop=el.scrollHeight;
+}
+function setAction(h){document.getElementById('action-panel').innerHTML=h;}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+function renderHistory(){
+  const panel=document.getElementById('history-panel');
+  if(!G.voteHistory.length&&!G.questHistory.length){panel.classList.add('hidden');return;}
+  panel.classList.remove('hidden');
+
+  // 按轮次整理数据
+  const rounds={};
+  G.voteHistory.forEach(v=>{
+    if(!rounds[v.round])rounds[v.round]={votes:[],quest:null};
+    rounds[v.round].votes.push(v);
+  });
+  G.questHistory.forEach(q=>{
+    if(!rounds[q.round])rounds[q.round]={votes:[],quest:null};
+    rounds[q.round].quest=q;
+  });
+
+  let html=`<h3 class="open" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">历史记录</h3><div class="history-body open">`;
+
+  Object.keys(rounds).sort((a,b)=>a-b).forEach(rn=>{
+    const r=rounds[rn];
+    const q=r.quest;
+    const titleCls=q?(q.result==='成功'?'success':'fail'):'';
+    html+=`<div class="history-round">`;
+    html+=`<div class="round-title ${titleCls}">第${rn}轮${q?' — '+q.result+(q.failCount>0?`（${q.failCount}张失败）`:'（全票成功）'):' — 进行中'}</div>`;
+
+    r.votes.forEach((v,vi)=>{
+      const label=r.votes.length>1?`提案${vi+1}`:'提案';
+      const approveN=v.votes.filter(x=>x.vote==='approve').length;
+      const rejectN=v.votes.filter(x=>x.vote==='reject').length;
+      html+=`<div class="round-detail">`;
+      html+=`<div class="team-members">👑${v.leader}组队：${v.team.join('、')} ${v.passed?'✓通过':'✗否决'}（${approveN}:${rejectN}）</div>`;
+      html+=`<div class="vote-record">${v.votes.map(x=>`<span class="${x.vote==='approve'?'v-approve':'v-reject'}">${x.name}${x.vote==='approve'?'✓':'✗'}</span>`).join(' ')}</div>`;
+      html+=`</div>`;
+    });
+
+    if(q){
+      html+=`<div class="round-detail"><div class="team-members">出征：${q.team.join('、')}</div></div>`;
+    }
+    html+=`</div>`;
+  });
+
+  html+=`</div>`;
+  panel.innerHTML=html;
+}
+
+// ============ ROLE REVEAL ============
+function showRoleReveal(){
+  const humans=G.players.filter(p=>p.type==='human');
+  if(!humans.length){G.phase='propose';startProposal();return;}
+  const h=humans[0];
+  const rev=document.getElementById('role-reveal');rev.classList.remove('hidden');
+  let info='';
+  if(h.role==='梅林'){info=`你看到了邪恶的身影：${G.players.filter(p=>p.team==='evil'&&p.role!=='莫德雷德').map(p=>p.name).join('、')}`;}
+  else if(h.role==='派西维尔'){info=`你看到了梅林（或莫甘娜？）：${G.players.filter(p=>p.role==='梅林'||p.role==='莫甘娜').map(p=>p.name).join('、')}`;}
+  else if(h.team==='evil'){
+    const allies=G.players.filter(p=>p.team==='evil'&&p.index!==h.index&&p.role!=='奥伯伦').map(p=>`${p.name}（${p.role}）`);
+    let ei=allies.length?`暗中同伴：${allies.join('、')}`:'你在黑暗中独行。';
+    if(h.role==='莫德雷德')ei+='<br/><em style="color:var(--text-dim)">梅林无法看到你——你是隐藏的邪恶。</em>';
+    if(h.role==='刺客')ei+='<br/><em style="color:var(--text-dim)">若正义赢得三轮，你将有最后机会刺杀梅林翻盘。</em>';
+    if(h.role==='莫甘娜')ei+='<br/><em style="color:var(--text-dim)">派西维尔会把你和梅林混淆——善加利用。</em>';
+    info=ei;
+  }else{info='你没有特殊情报，凭直觉与逻辑行事。';}
+  rev.innerHTML=`<div class="role-name ${h.team}">${h.role}</div><div class="role-info">${info}</div>`;
+  setAction(`<h3>身份揭示</h3><p style="color:var(--text-dim);margin-bottom:12px">记住你的身份，准备好后开始游戏。</p><button class="btn primary" onclick="beginGame()">我已了然 — 开始</button>`);
+}
+function beginGame(){
+  document.getElementById('role-reveal').classList.add('hidden');
+  addLog('⚔ 系统',`远征开始。${G.n}位风云人物齐聚。`,'system');
+  G.phase='propose';startProposal();
+}
+
+// ============ AI ============
+async function callAI(player,prompt,maxTokens=200,retries=3){
+  const sys=buildSystemPrompt(player);
+  const headers={'Content-Type':'application/json'};
+  if(G.apiKey){headers['x-api-key']=G.apiKey;headers['anthropic-version']='2023-06-01';headers['anthropic-dangerous-direct-browser-access']='true';}
+  for(let att=0;att<retries;att++){
+    try{
+      const fetchP=fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,
+        body:JSON.stringify({model:'claude-opus-4-20250514',max_tokens:maxTokens,system:sys,messages:[{role:'user',content:prompt}]})});
+      const timeoutP=new Promise((_,reject)=>setTimeout(()=>reject(new Error('超时')),45000));
+      const r=await Promise.race([fetchP,timeoutP]);
+      if(r.status===429){
+        addLog('⚠ 系统',`${player.name}的请求被限流，${(att+1)*3}秒后重试（${att+1}/${retries}）…`,'system');
+        await sleep((att+1)*3000);continue;
+      }
+      if(!r.ok){
+        addLog('⚠ 系统',`${player.name}的请求失败（HTTP ${r.status}），使用备用回复。`,'system');
+        return fallback(player);
+      }
+      const d=await r.json();
+      if(d.content?.[0]?.text)return d.content[0].text;
+      addLog('⚠ 系统',`${player.name}的回复格式异常，使用备用回复。`,'system');
+      return fallback(player);
+    }catch(e){
+      const reason=e.message||'网络错误';
+      if(att<retries-1){
+        addLog('⚠ 系统',`${player.name}：${reason}，重试中（${att+1}/${retries}）…`,'system');
+        await sleep(2000);continue;
+      }
+      addLog('⚠ 系统',`${player.name}：${reason}，使用备用回复。`,'system');
+      return fallback(player);
+    }
+  }
+  addLog('⚠ 系统',`${player.name}：重试${retries}次均失败，使用备用回复。`,'system');
+  return fallback(player);
+}
+
+function fallback(p){
+  const fb={
+    '张居正':['以大局论之，暂且如此。','此事须当机立断。','容某再想想。'],
+    '秦始皇':['朕意已决。','可。','多说无益。'],
+    '武则天':['哦？是么？先这样吧。','倒也有几分道理。','有意思。'],
+    '苏轼':['这事有意思，且看着吧。','苏某没意见。','哈，行。'],
+    '霍去病':['干就完了。','没问题。','少废话，上。'],
+    '李清照':['此言倒也不差。','且看后续如何。','暂且保留意见。'],
+    '朱棣':['本王倒要看看。','有趣。','准了。'],
+    '诸葛亮':['依亮之见，可行。','且慢……算了，先这样。','容亮再观察。'],
+    '李世民':['朕以为可。','诸位若无异议，便如此。','且行且看。'],
+    '曹操':['孤倒要看看。','有意思。','继续。'],
+  };
+  const lines=fb[p.name]||['同意。','没意见。','继续吧。'];
+  return JSON.stringify({speech:lines[Math.floor(Math.random()*lines.length)],vote:'approve',action:'success',team:[],target:''});
+}
+
+function buildSystemPrompt(p){
+  const isEvil=p.team==='evil';
+  const evilTeam=G.players.filter(x=>x.team==='evil'&&x.role!=='奥伯伦').map(x=>x.name);
+  const merlinSees=G.players.filter(x=>x.team==='evil'&&x.role!=='莫德雷德').map(x=>x.name);
+  let k='';
+  if(isEvil&&p.role!=='奥伯伦'){
+    const goodWins=G.questResults.filter(r=>r==='success').length;
+    const evilWins=G.questResults.filter(r=>r==='fail').length;
+    k=`邪恶同伴：[${evilTeam.join('、')}]。当前比分：正义${goodWins}胜，邪恶${evilWins}胜。
+
+你是一个阿瓦隆高手。每次做决策前，像顶级人类玩家一样思考以下维度：
+
+【任务出牌】重要：任务出牌是同时、秘密的，你不能和同伴沟通，不知道同伴会出什么。
+- 邪恶需要3次失败才能赢，正义需要3次成功。算算：如果这轮我不出fail，邪恶还有几轮机会？够吗？
+- 如果正义再赢一轮就达到3胜——这轮不fail就没有下一轮了。暴露总比输好。
+- 如果同伴也在队伍里，你们可能都会出fail（出现2张失败牌），这会暴露队里有多个邪恶。你要赌一把：同伴是否也在出fail？但你无法确定。一般来说，关键局面宁可多一张fail也不能赌同伴会出。
+- 如果我已经被多人怀疑，出fail会坐实嫌疑。但如果不出fail邪恶就输了，那被怀疑也要出。
+- 前期邪恶不急的时候，出success建立信任是有价值的，后期信任就是武器。
+
+【发言与伪装】核心：你在think里是邪恶视角做真实分析，但speech里必须完全以好人视角发言。
+- 想象如果你真的是好人，面对当前局面你会怎么想、怎么说、怀疑谁？然后就那么说。
+- 好人会主动分析、会质疑、会自辩、会愤怒——你也要有这些自然反应，不能太冷静或太沉默。
+- 伪装的关键不是说特定的话，而是让你的行为模式（投票、发言、情绪）和真正的好人无法区分。
+- 可以主动制造议题把讨论引向对你有利的方向，也可以甩锅同伴来自保——高手什么都干得出。
+- 被质疑时想想一个真正无辜的人会怎么反应，然后演那个反应。
+
+【投票】
+- 不要无脑赞成所有提案。好人会分析投票模式，你也要表现出判断力。
+- 如果队伍里没有邪恶同伴，可以考虑否决来拖延——但注意连续5次否决邪恶直接赢。
+
+【隐式信号】虽然你不能直接和同伴沟通，但可以通过公开行为推测同伴意图：
+- 观察同伴的投票模式：如果同伴赞成了某个队伍，可能意味着他想通过那个队伍上场。
+- 观察同伴的发言方向：如果同伴在质疑某个好人，你可以跟进来形成合力，但不要太明显地附和。
+- 任务出牌时，如果同伴也在队里，你无法确定同伴会出什么。但可以根据局势推测——比如关键局面同伴大概率也会出fail。`;
+  }else if(p.role==='梅林'){
+    k=`你是梅林。邪恶（莫德雷德除外）：[${merlinSees.join('、')}]。
+
+你是阿瓦隆高手扮演的梅林。你的核心矛盾：知道真相但不能暴露自己——如果刺客猜到你是梅林，邪恶直接翻盘。
+
+【发言伪装】
+- 不要直接指控坏人，用模糊暗示引导。表现得像"直觉准的普通忠臣"而不是全知者。
+- 偶尔表现犹豫、不确定，甚至对好人提出轻微质疑来掩护自己——一个每次都对的人太可疑了。
+- 如果好人快赢了（2胜），更要低调——刺客正在通过分析发言和投票来找你。
+
+【投票伪装——最关键！】
+- 你的投票模式是刺客找你的最大线索。如果你每次都精准地反对包含坏人的队伍、赞成纯好人队伍，投票记录会直接暴露你。
+- 你必须故意"犯错"：偶尔赞成一个包含坏人的队伍，或者反对一个其实没问题的队伍。让你的投票模式和普通忠臣无法区分。
+- 权衡：每次投票时想想"如果我投对了，刺客会不会因此锁定我？"如果局势还不紧张，宁可牺牲一次投票精准度来保护自己的身份。
+- 只在生死局（比分2:2或正义1:2落后）才考虑精准投票，平时要混入噪音。`;
+  }else if(p.role==='派西维尔'){
+    const mm=G.players.filter(x=>x.role==='梅林'||x.role==='莫甘娜').map(x=>x.name);
+    k=`你看到梅林/莫甘娜（不知谁是谁）：[${mm.join('、')}]。观察两人发言判断真梅林——真梅林暗示更含蓄但判断更准，莫甘娜可能模仿梅林的风格但偶尔露出破绽。
+你的重要职责是保护梅林：
+- 如果你判断出谁是真梅林，注意他的发言和投票方向，跟随他的判断来强化好人阵营的决策力——但不要明说"我跟某某的意见一样"，要用自己的方式得出相同结论。
+- 这样做的好处是：当多个好人的投票和判断趋同时，刺客就无法单独锁定谁是梅林——因为好几个人看起来都"很准"。
+- 偶尔也可以主动表达和梅林不同的观点来分散刺客注意力。`;
+  }else{k=`你是忠臣，没有特殊情报。用上面的核心推理规则分析任务结果，结合投票模式（谁总赞成可疑队伍？）和发言矛盾（谁前后不一致？）来推理邪恶身份。
+你知道自己出了成功牌，所以可以据此推理。但注意：所有人都会声称自己出了成功牌（坏人也会），所以别人的自证清白不能直接采信——要看行为和逻辑是否一致。
+保护梅林的意识：
+- 你不知道谁是梅林，但你知道梅林在好人阵营里。如果你通过分析得出了正确的判断，大胆表达出来——当多个好人都做出准确判断时，刺客就无法通过"谁判断最准"来锁定梅林。
+- 换句话说：你越努力做正确的推理和投票，梅林就越安全，因为你们的行为模式会趋同。`;}
+  const pLine=p.personality?`\n你的性格与说话方式：${p.personality}\n重要：你的名字是${p.name}，用这个名字自称，不要用其他名字。`:'';
+
+  // 好人阵营的比分紧迫性提醒
+  let urgencyHint='';
+  if(!isEvil){
+    const gW=G.questResults.filter(r=>r==='success').length;
+    const eW=G.questResults.filter(r=>r==='fail').length;
+    if(eW>=2) urgencyHint=`\n【紧急】邪恶已经赢了${eW}轮，再输一轮正义就彻底失败了！现在绝对不能冒险——不要"故意让任务失败来验证某人"，不要"钓鱼执法"。你的唯一目标是确保接下来的每一轮任务都成功。组队和投票时必须优先选择你最信任的人，排除一切可疑人选。`;
+    else if(eW===1&&gW===0) urgencyHint=`\n【注意】邪恶已领先1:0，不能再随意试探了。组队要优先用已经验证过的安全组合。`;
+    else if(gW>=2) urgencyHint=`\n正义已领先${gW}:${eW}，但不要大意——邪恶可能在关键轮发力。同时注意保护梅林，刺客正在寻找机会。`;
+  }
+
+  return `你是${p.name}，在玩阿瓦隆桌游。角色：${p.role}（${isEvil?'邪恶':'正义'}阵营）。${pLine}
+${k}${urgencyHint}
+规则：3次成功=正义胜；3次失败=邪恶胜；5次连续否决=邪恶胜。${G.currentQuest>=4&&DOUBLE_FAIL[G.n]?'第4轮需2张失败牌。':'1张失败牌即失败。'}
+本局共${G.n}人，其中${G.n-EVIL_COUNT[G.n]}个好人、${EVIL_COUNT[G.n]}个坏人。
+
+硬性逻辑约束（你的推理绝不能违反以下事实）：
+- N人队伍出了K张失败牌 → 队里恰好有K个坏人（确定的，不是"可能"或"至少其中之一"）
+- 好人绝对不能出失败牌 → 出了失败牌的人100%是坏人
+- 一人一张牌 → 一个人不可能出两张失败牌
+- 你自己知道自己出了什么牌，但别人的自证清白不能直接相信——坏人也会说"我出了成功牌"
+
+推理工具：
+- 人数推理：${G.n}人中${EVIL_COUNT[G.n]}个坏人。如果你是好人且没进队伍，队外好人数=已知，可推算队内坏人概率。
+- 交叉比对：队伍A失败、队伍B成功，A有但B没有的人嫌疑最大。
+
+队长按座位顺序轮流：${G.players.map(x=>x.name).join('→')}→循环。当某人是队长只是轮到他了，不是主动争取。
+座位顺序：${G.players.map((x,i)=>`${i+1}.${x.name}`).join('、')}。你是${p.index+1}号位。
+
+回复格式：先在"think"字段做简要分析（80-120字，[信念]和[策略]两个维度），再在其他字段输出决策。speech字段不超过60字。
+
+硬性逻辑约束（你的推理绝不能违反以下事实）：
+- 如果N人队伍出了K张失败牌 → 队里恰好有K个坏人（不是"至少"也不是"可能"，而是"确定"）
+- 好人绝对不能出失败牌 → 出了失败牌的人100%是坏人
+- 一人一张牌 → 一个人不可能出两张失败牌
+- 如果你在队里且出了成功牌，K张失败必定来自其他K个队员，他们全是坏人
+
+只返回合法JSON。不要markdown、反引号。用中文。`;
+}
+
+function gameState(){
+  const log=G.log.slice(-12).map(l=>`${l.speaker}: ${l.msg}`).join('\n');
+  const goodW=G.questResults.filter(r=>r==='success').length;
+  const evilW=G.questResults.filter(r=>r==='fail').length;
+  const nextLeader=G.players[(G.leaderIndex+1)%G.n].name;
+
+  // === 嫌疑人矩阵 ===
+  let matrix='';
+  if(G.questHistory.length>0){
+    matrix='\n【嫌疑人分析表】\n';
+    G.players.forEach(p=>{
+      const onQuests=G.questHistory.filter(q=>q.team.includes(p.name));
+      const onFails=onQuests.filter(q=>q.result==='失败');
+      const onSuccess=onQuests.filter(q=>q.result==='成功');
+      const failDetails=onFails.map(q=>`第${q.round}轮(${q.failCount}张fail)`).join('、');
+      // 从未参与失败任务的人嫌疑较低
+      let suspicion='';
+      if(onFails.length===0&&onSuccess.length>0) suspicion='[低嫌疑:只参与过成功任务]';
+      else if(onFails.length>0) suspicion=`[嫌疑:参与了${onFails.length}次失败]`;
+      else suspicion='[未知:未执行过任务]';
+      matrix+=`${p.name}：出征${onQuests.length}次（成功${onSuccess.length}/失败${onFails.length}）${failDetails?'失败任务:'+failDetails:''} ${suspicion}\n`;
+    });
+    // 交叉比对
+    const failQuests=G.questHistory.filter(q=>q.result==='失败');
+    if(failQuests.length>=2){
+      matrix+='交叉分析：';
+      // 找出所有失败任务都参与的人
+      const allFailMembers=failQuests.map(q=>q.team);
+      const intersection=allFailMembers[0].filter(name=>allFailMembers.every(q=>q.includes(name)));
+      if(intersection.length>0) matrix+=`每次失败都在场的人：[${intersection.join('、')}]——高度可疑。`;
+      // 成功vs失败的差异
+      const successQuests=G.questHistory.filter(q=>q.result==='成功');
+      if(successQuests.length>0){
+        const lastFail=failQuests[failQuests.length-1];
+        const lastSuccess=successQuests[successQuests.length-1];
+        const onlyInFail=lastFail.team.filter(n=>!lastSuccess.team.includes(n));
+        const onlyInSuccess=lastSuccess.team.filter(n=>!lastFail.team.includes(n));
+        if(onlyInFail.length>0) matrix+=`\n对比最近成功/失败队伍：失败队伍中独有的人[${onlyInFail.join('、')}]嫌疑更大。`;
+      }
+      matrix+='\n';
+    }
+  }
+
+  // === 投票一致性分析 ===
+  let voteAnalysis='';
+  if(G.voteHistory.length>=2){
+    voteAnalysis='\n【投票模式分析】\n';
+    // 计算每对玩家的投票一致率
+    const pairs=[];
+    for(let i=0;i<G.n;i++){
+      for(let j=i+1;j<G.n;j++){
+        let same=0,total=0;
+        G.voteHistory.forEach(v=>{
+          const vi=v.votes.find(x=>x.name===G.players[i].name);
+          const vj=v.votes.find(x=>x.name===G.players[j].name);
+          if(vi&&vj){total++;if(vi.vote===vj.vote)same++;}
+        });
+        if(total>=2&&same/total>=0.8) pairs.push({a:G.players[i].name,b:G.players[j].name,rate:Math.round(same/total*100),same,total});
+      }
+    }
+    if(pairs.length>0){
+      pairs.sort((a,b)=>b.rate-a.rate);
+      pairs.slice(0,3).forEach(p=>{
+        voteAnalysis+=`${p.a}与${p.b}：${p.total}次投票中${p.same}次一致(${p.rate}%)——可能是同阵营。\n`;
+      });
+    }
+    // 谁赞成了最终失败的队伍
+    const failVotes=G.voteHistory.filter(v=>v.passed&&G.questHistory.some(q=>q.round===v.round&&q.result==='失败'));
+    if(failVotes.length>0){
+      const approvedFail={};
+      failVotes.forEach(v=>{v.votes.filter(x=>x.vote==='approve').forEach(x=>{approvedFail[x.name]=(approvedFail[x.name]||0)+1;});});
+      const suspicious=Object.entries(approvedFail).sort((a,b)=>b[1]-a[1]);
+      if(suspicious.length>0) voteAnalysis+=`赞成过失败队伍的人：${suspicious.map(([n,c])=>`${n}(${c}次)`).join('、')}。\n`;
+    }
+  }
+
+  // === 任务历史 ===
+  let qs='';
+  G.questHistory.forEach(q=>{
+    qs+=`第${q.round}轮：[${q.team.join('、')}]→${q.result}(${q.failCount}张fail)；`;
+  });
+
+  return `比分：正义${goodW}胜邪恶${evilW}胜。第${G.currentQuest+1}轮（共5轮），需${G.questSizes[G.currentQuest]}人。否决${G.voteTrack}/5次。队长：${G.players[G.leaderIndex].name}，下一位：${nextLeader}。
+${qs?'任务历史：'+qs:''}${matrix}${voteAnalysis}
+近期对话：\n${log||'（无）'}`;
+}
+
+// ============ PARSE ============
+function parseAIThink(raw){
+  try{const d=JSON.parse(raw);if(d.think)return d.think;}catch{}
+  const m=raw.match(/"think"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if(m)return m[1].replace(/\\"/g,'"').replace(/\\n/g,'\n');return null;
+}
+function parseAISpeech(raw){
+  try{const d=JSON.parse(raw);if(d.speech)return d.speech;}catch{}
+  const m=raw.match(/"speech"\s*:\s*"((?:[^"\\]|\\.)*)("|\s*$)/);
+  if(m&&m[1].length>2)return m[1].replace(/\\"/g,'"').replace(/\\n/g,'');return null;
+}
+function parseAIJson(raw){
+  try{return JSON.parse(raw);}catch{}
+  for(const fix of ['"}','"}}','"]}',' "}']){try{return JSON.parse(raw+fix);}catch{}}return null;
+}
+
+// ============ PROPOSAL ============
+async function startProposal(){
+  G.phase='propose';G.proposedTeam=[];
+  const leader=G.players[G.leaderIndex],size=G.questSizes[G.currentQuest];
+  addLog('⚔ 系统',`第${G.currentQuest+1}轮 — ${leader.name}担任队长，选${size}人出征。`,'system');
+  if(leader.type==='human'){
+    renderPlayers(G.players.map((_,i)=>i),toggleProposal);
+    setAction(`<h3>选择${size}名队员</h3><div class="action-buttons"><button class="btn primary" id="cp" onclick="confirmProposal()" disabled>确认（0/${size}）</button></div>`);
+  }else await aiPropose(leader,size);
+}
+function toggleProposal(i){
+  const size=G.questSizes[G.currentQuest],idx=G.proposedTeam.indexOf(i);
+  if(idx>=0)G.proposedTeam.splice(idx,1);else if(G.proposedTeam.length<size)G.proposedTeam.push(i);
+  renderPlayers(G.players.map((_,i)=>i),toggleProposal);
+  const b=document.getElementById('cp');b.disabled=G.proposedTeam.length!==size;b.textContent=`确认（${G.proposedTeam.length}/${size}）`;
+}
+function confirmProposal(){
+  addLog(G.players[G.leaderIndex].name,`我提议：${G.proposedTeam.map(i=>G.players[i].name).join('、')}`,G.players[G.leaderIndex].team==='evil'?'evil-team':'good-team');
+  renderPlayers();startDiscussion();
+}
+async function aiPropose(leader,size){
+  setAction(`<h3><span class="spinner"></span>${leader.name} 正在组队…</h3>`);
+  let proposeHint='';
+  if(leader.role==='梅林'){
+    const knownEvil=G.players.filter(x=>x.team==='evil'&&x.role!=='莫德雷德').map(x=>x.name);
+    proposeHint=`\n你知道${knownEvil.join('、')}是邪恶的。组队时要避开他们，但不能每次都精准排除——那样刺客会通过你的组队模式锁定你。偶尔可以带上一个你知道是坏人的来掩护自己（尤其是不紧张的局面）。`;
+  }
+  // 构建组队策略提醒
+  let teamStrategy='';
+  const successQuests=G.questHistory.filter(q=>q.result==='成功');
+  const failQuests=G.questHistory.filter(q=>q.result==='失败');
+  const isEvilLeader=leader.team==='evil';
+
+  if(isEvilLeader){
+    teamStrategy='\n组队策略（你是邪恶队长，在think中思考，speech中伪装好人）：';
+    teamStrategy+='\n- 你的目标是把自己或同伴塞进队伍来制造任务失败。';
+    if(successQuests.length>0){
+      const lastSuccess=successQuests[successQuests.length-1];
+      teamStrategy+=`\n- 上次成功的队伍是[${lastSuccess.team.join('、')}]。直接复用它可能对邪恶不利。你需要调整人选，但理由要从好人的视角出发——想想一个真正的好人队长如果想换人会怎么解释？什么样的理由在当前局面下听起来最自然？`;
+    }
+    if(failQuests.length>0){
+      const lastFail=failQuests[failQuests.length-1];
+      teamStrategy+=`\n- 上次失败的队伍[${lastFail.team.join('、')}]有嫌疑人。你可以利用这些嫌疑来操控人选——比如以排除嫌疑人为由做对邪恶有利的调整。`;
+    }
+    teamStrategy+='\n- 关键：你的speech要像一个好人队长基于逻辑分析做出的决定，不要用套路化的说辞。';
+  }else{
+    teamStrategy='\n组队策略原则：';
+    if(successQuests.length>0){
+      const lastSuccess=successQuests[successQuests.length-1];
+      teamStrategy+=`\n- 上次成功的队伍是[${lastSuccess.team.join('、')}]，成功说明没人出失败牌。复用是稳妥选择，但不是唯一选择——你也可能想换人来获取更多信息（比如验证没上过场的人），或者因为讨论中某人表现可疑而调整。`;
+    }
+    if(failQuests.length>0){
+      const lastFail=failQuests[failQuests.length-1];
+      teamStrategy+=`\n- 上次失败的队伍[${lastFail.team.join('、')}]出了${lastFail.failCount}张失败牌，队里有${lastFail.failCount}个坏人，这些人嫌疑很大。`;
+    }
+    teamStrategy+='\n- 组队决策要基于你对局势的分析——谁可信、谁可疑、需要验证谁。像一个真正在思考的玩家一样做决定。';
+  }
+  const myReflection=G.playerStates[leader.name]?.reflection||'';
+  const reflHint=myReflection?`\n你的心智模型：${myReflection}`:'';
+  const raw=await callAI(leader,`${gameState()}\n你是队长，选${size}人执行第${G.currentQuest+1}轮任务。${proposeHint}${teamStrategy}${reflHint}\n在think中做简要分析（[信念][策略]，80-120字），再组队。\n回复：{"think":"分析","team":[精确玩家名列表],"speech":"一句话理由，不超过30字"}`,500);
+  const d=parseAIJson(raw)||{};
+  const think=d.think||parseAIThink(raw);
+  if(d.team)G.proposedTeam=d.team.map(name=>G.players.findIndex(p=>p.name===name)).filter(i=>i>=0);
+  if(G.proposedTeam.length!==size)randomTeam(size);
+  const speech=d.speech||parseAISpeech(raw)||'';
+  addLog(leader.name,`${speech} — 我提议：${G.proposedTeam.map(i=>G.players[i].name).join('、')}`,leader.team==='evil'?'evil-team':'good-team',think);
+  renderPlayers();startDiscussion();
+}
+function randomTeam(size){
+  G.proposedTeam=[];const pool=[...Array(G.n).keys()];
+  while(G.proposedTeam.length<size){const r=Math.floor(Math.random()*pool.length);G.proposedTeam.push(pool.splice(r,1)[0]);}
+}
+
+// ============ DISCUSSION ============
+async function startDiscussion(){
+  G.phase='discussion';
+  const speakers=G.players.filter(p=>p.type==='ai').sort(()=>Math.random()-.5).slice(0,Math.min(3,G.players.filter(p=>p.type==='ai').length));
+  const tn=G.proposedTeam.map(i=>G.players[i].name).join('、');
+  for(const p of speakers){
+    setAction(`<h3><span class="spinner"></span>${p.name} 正在思考…</h3>`);
+    // 针对阵营的推理提醒
+    let reasonHint='';
+    if(p.team==='good'){
+      reasonHint=`\n你是好人，你的推理必须严格正确：K张失败牌=恰好K个坏人（一人只能出一张牌）。不要说"至少其中之一"这种模糊说法——2张失败就是2个坏人，这是确定的。`;
+    }else{
+      reasonHint=`\n你在think中要做正确的数学推理（K张失败=K个坏人），但speech中你可以故意模糊、混淆、引导错误方向来保护自己和同伴——这是伪装策略。`;
+    }
+    // 获取该玩家之前的公开立场和反思记忆
+    const myState=G.playerStates[p.name]||{stances:[],reflection:''};
+    let stateHint='';
+    if(myState.stances.length>0) stateHint+=`\n你之前公开表达过的立场（保持一致性！）：${myState.stances.slice(-3).join('；')}`;
+    if(myState.reflection) stateHint+=`\n你上轮复盘的心智模型：${myState.reflection}`;
+    const raw=await callAI(p,`${gameState()}\n队伍：[${tn}]。${reasonHint}${stateHint}
+
+在think中简要分析（80-120字，分[信念][策略]两个维度即可，不要展开太多）。
+然后在speech中用角色口吻发言（不超过60字）。
+在stance中记录你这次的公开立场要点。
+回复：{"think":"分析","speech":"发言","stance":"立场"}`,600);
+    const speech=parseAISpeech(raw);
+    const think=parseAIThink(raw);
+    // 存储公开立场
+    const d=parseAIJson(raw);
+    if(d?.stance){
+      if(!G.playerStates[p.name])G.playerStates[p.name]={stances:[],suspicions:[],trusted:[]};
+      G.playerStates[p.name].stances.push(`第${G.currentQuest+1}轮：${d.stance}`);
+    }
+    if(speech){addLog(p.name,speech,p.team==='evil'?'evil-team':'good-team',think);}
+    else{const fb=JSON.parse(fallback(p));addLog(p.name,fb.speech,p.team==='evil'?'evil-team':'good-team');}
+    await sleep(800);
+  }
+  if(G.players.some(p=>p.type==='human')){
+    setAction(`<h3>讨论 — 你的发言</h3><div class="discussion-input">
+      <input type="text" id="hs" placeholder="说点什么（或跳过）…" onkeydown="if(event.key==='Enter')humanSpeak()" />
+      <button class="btn" onclick="humanSpeak()">发言</button>
+      <button class="btn" onclick="startVote()">跳过</button></div>`);
+  }else{await sleep(500);startVote();}
+}
+function humanSpeak(){
+  const msg=document.getElementById('hs').value.trim();
+  if(msg){const h=G.players.find(p=>p.type==='human');addLog(h.name,msg,h.team==='evil'?'evil-team':'good-team');}
+  startVote();
+}
+
+// ============ VOTE ============
+async function startVote(){
+  G.phase='vote';G.votes={};G.voteThinks={};
+  const tn=G.proposedTeam.map(i=>G.players[i].name).join('、');
+  setAction(`<h3><span class="spinner"></span>投票中…</h3>`);
+  for(const p of G.players.filter(x=>x.type==='ai')){
+    // 构建角色特定的投票提醒
+    let voteHint='';
+    const teamMembers=G.proposedTeam.map(i=>G.players[i]);
+    const evilOnTeam=teamMembers.filter(x=>x.team==='evil');
+    const goodW=G.questResults.filter(r=>r==='success').length;
+    const evilW=G.questResults.filter(r=>r==='fail').length;
+    const onTeam=G.proposedTeam.includes(p.index);
+    const teamSize=G.proposedTeam.length;
+    const nEvil=EVIL_COUNT[G.n];
+    const nGood=G.n-nEvil;
+
+    if(p.role==='梅林'){
+      const knownEvil=G.players.filter(x=>x.team==='evil'&&x.role!=='莫德雷德').map(x=>x.name);
+      const evilInTeam=teamMembers.filter(x=>knownEvil.includes(x.name)).map(x=>x.name);
+      if(evilInTeam.length>0){
+        voteHint=`\n你知道${evilInTeam.join('、')}是邪恶的，他们在这个队伍里。如果通过，任务很可能失败。${goodW>=2||evilW>=2?'现在是关键局面，阻止坏人比保护身份更重要——反对！':'你需要权衡暴露风险，但也要考虑是否能承受任务失败。'}`;
+      }else{
+        voteHint='\n这个队伍里没有你已知的邪恶（莫德雷德你看不到）。可以赞成，但保持警惕。';
+      }
+    }else if(p.team==='good'&&!onTeam){
+      // 好人没被选入队伍——做人数推理
+      const goodOutside=G.players.filter(x=>x.team==='good'&&!G.proposedTeam.includes(x.index)).length;
+      const evilMinOnTeam=Math.max(0,nEvil-(G.n-teamSize-goodOutside));
+      // 如果队外的好人数>=队外总人数，说明队里一定有坏人
+      const outsideTotal=G.n-teamSize;
+      const goodKnownOutside=1; // 至少自己是好人
+      const maxGoodOnTeam=nGood-goodKnownOutside; // 队里最多这么多好人
+      const minEvilOnTeam=Math.max(0,teamSize-maxGoodOnTeam);
+      if(minEvilOnTeam>0){
+        voteHint=`\n【人数推理】你是好人且没被选入队伍。本局${G.n}人中${nGood}个好人${nEvil}个坏人。你确定自己是好人在队外，所以队里最多${maxGoodOnTeam}个好人，至少${minEvilOnTeam}个坏人！${evilW>=2?'邪恶已赢'+evilW+'轮，再输就没了——这个队伍里确定有坏人，你应该反对！':'这个队伍里确定有坏人，要谨慎考虑。'}`;
+      }
+    }else if(p.team==='evil'&&p.role!=='奥伯伦'){
+      const allyInTeam=teamMembers.filter(x=>x.team==='evil').map(x=>x.name);
+      if(allyInTeam.length>0){
+        voteHint=`\n你的同伴${allyInTeam.join('、')}在队伍里。赞成可以让同伴执行任务，但注意局势——好人可能已经怀疑这个组合。`;
+      }
+    }
+    const myReflection=G.playerStates[p.name]?.reflection||'';
+    const reflHint=myReflection?`\n你的心智模型：${myReflection}`:'';
+    const raw=await callAI(p,`${gameState()}\n队伍：[${tn}]，队长：${G.players[G.leaderIndex].name}。已否决${G.voteTrack}/5次。${voteHint}${reflHint}\n在think中做简要分析（[信念][策略]，80字以内），再投票。\n回复：{"think":"分析","vote":"approve"或"reject"}`,450);
+    const d=parseAIJson(raw);
+    const voteRaw=d?.vote||'';
+    G.votes[p.index]=/reject|反对|否决/i.test(voteRaw)?'reject':'approve';
+    G.voteThinks[p.index]=d?.think||parseAIThink(raw);
+    await sleep(800);
+  }
+  const human=G.players.find(p=>p.type==='human');
+  if(human){
+    setAction(`<h3>投票</h3><p style="color:var(--text-dim)">队伍：${tn}</p>
+      <div class="action-buttons" style="margin-top:10px">
+        <button class="btn good" onclick="humanVote('approve')">✓ 赞成</button>
+        <button class="btn evil" onclick="humanVote('reject')">✗ 反对</button></div>`);
+  }else resolveVote();
+}
+function humanVote(v){G.votes[G.players.find(p=>p.type==='human').index]=v;resolveVote();}
+function resolveVote(){
+  const app=Object.values(G.votes).filter(v=>v==='approve').length,rej=Object.values(G.votes).filter(v=>v==='reject').length;
+  // 记录投票
+  G.voteHistory.push({
+    round:G.currentQuest+1,
+    leader:G.players[G.leaderIndex].name,
+    team:G.proposedTeam.map(i=>G.players[i].name),
+    votes:G.players.map(p=>({name:p.name,vote:G.votes[p.index]})),
+    passed:app>rej
+  });
+  renderHistory();
+  const allThinks=G.players.filter(p=>p.type==='ai'&&G.voteThinks[p.index]).map(p=>`【${p.name}】${G.voteThinks[p.index]}`).join('\n');
+  addLog('⚔ 投票',G.players.map(p=>`${p.name}：${G.votes[p.index]==='approve'?'✓':'✗'}`).join(' · ')+` — ${app}赞成，${rej}反对`,'system',allThinks||null);
+  if(app>rej){addLog('⚔ 系统','通过！任务开始。','system');G.voteTrack=0;renderVoteTrack();startMission();}
+  else{
+    G.voteTrack++;renderVoteTrack();
+    if(G.voteTrack>=5){endGame('evil','连续五次否决——邪恶获胜！');return;}
+    addLog('⚔ 系统',`否决！（${G.voteTrack}/5）`,'system');
+    G.leaderIndex=(G.leaderIndex+1)%G.n;G.proposedTeam=[];renderPlayers();startProposal();
+  }
+}
+
+// ============ MISSION ============
+async function startMission(){
+  G.phase='mission';G.missionVotes={};G.missionThinks={};
+  const team=G.proposedTeam.map(i=>G.players[i]),human=team.find(p=>p.type==='human');
+  setAction(`<h3><span class="spinner"></span>任务执行中…</h3>`);
+  for(const p of team.filter(x=>x.type==='ai')){
+    if(p.team==='good'){G.missionVotes[p.index]='success';continue;}
+    const goodW=G.questResults.filter(r=>r==='success').length;
+    const evilW=G.questResults.filter(r=>r==='fail').length;
+    const evilAllies=team.filter(t=>t.team==='evil'&&t.index!==p.index);
+    const raw=await callAI(p,`${gameState()}\n你在第${G.currentQuest+1}轮任务队伍中。队友：[${team.map(t=>t.name).join('、')}]。
+当前比分：正义${goodW}胜，邪恶${evilW}胜。${evilAllies.length?`你知道同伴${evilAllies.map(a=>a.name).join('、')}也在队里，但出牌是同时秘密的，你不知道同伴会出什么。`:'队里只有你一个邪恶。'}
+
+记住：出牌是同时、秘密的，你无法和同伴协商。在think中像高手一样分析：
+1. 如果我出success，正义会赢到${goodW+1}胜。邪恶还剩几轮机会？我能保证后面还能上场吗？
+2. 如果我出fail，谁会被怀疑？我积累的信任够扛住质疑吗？${evilAllies.length?'同伴也在队里，可能也会出fail——出现2张失败牌会暴露更多信息，但你无法控制同伴的选择。':''}
+3. 综合判断：此刻出fail还是出success对邪恶的总体胜率更高？
+
+回复：{"think":"你的完整分析","action":"success"或"fail"}`,500);
+    const d=parseAIJson(raw);
+    const actionRaw=d?.action||'';
+    const isFail=/fail|失败/i.test(actionRaw);
+    G.missionVotes[p.index]=isFail?'fail':'success';
+    G.missionThinks[p.index]=d?.think||parseAIThink(raw);
+    if(!isFail&&G.missionThinks[p.index]&&/必须出fail|我出fail|出失败|选择失败|打出失败/.test(G.missionThinks[p.index])){
+      G.missionVotes[p.index]='fail';
+    }
+    await sleep(800);
+  }
+  if(human&&G.proposedTeam.includes(human.index)){
+    if(human.team==='good'){G.missionVotes[human.index]='success';addLog('⚔ 系统','作为忠臣，你打出了成功牌。','system');resolveMission();}
+    else setAction(`<h3>你在队伍中——打出哪张牌？</h3><div class="action-buttons">
+      <button class="btn good" onclick="humanMission('success')">☀ 成功</button>
+      <button class="btn evil" onclick="humanMission('fail')">☠ 失败</button></div>`);
+  }else resolveMission();
+}
+function humanMission(v){G.missionVotes[G.players.find(p=>p.type==='human').index]=v;resolveMission();}
+async function resolveMission(){
+  const votes=Object.values(G.missionVotes),fails=votes.filter(v=>v==='fail').length;
+  const need2=G.currentQuest===3&&DOUBLE_FAIL[G.n],failed=need2?fails>=2:fails>=1;
+  // 记录这轮任务的队伍和结果
+  G.questHistory.push({
+    round:G.currentQuest+1,
+    team:G.proposedTeam.map(i=>G.players[i].name),
+    result:failed?'失败':'成功',
+    failCount:fails
+  });
+  renderHistory();
+  const mThinks=Object.keys(G.missionThinks).map(i=>`【${G.players[i].name}】${G.missionThinks[i]}`).join('\n');
+  addLog('⚔ 任务',`翻牌：${[...votes].sort(()=>Math.random()-.5).map(v=>v==='success'?'☀':'☠').join(' ')} — ${fails}张失败`,'system',mThinks||null);
+  if(failed){G.questResults.push('fail');addLog('⚔ 系统',`第${G.currentQuest+1}轮失败！`,'system');}
+  else{G.questResults.push('success');addLog('⚔ 系统',`第${G.currentQuest+1}轮成功！`,'system');}
+  G.currentQuest++;renderQuestTrack();
+  const gw=G.questResults.filter(r=>r==='success').length,ew=G.questResults.filter(r=>r==='fail').length;
+  if(gw>=3){startAssassination();return;}
+  if(ew>=3){endGame('evil','三次失败——邪恶获胜！');return;}
+  // === 每轮反思：AI静默复盘 ===
+  await runReflection();
+  G.leaderIndex=(G.leaderIndex+1)%G.n;G.proposedTeam=[];G.voteTrack=0;
+  renderVoteTrack();renderPlayers();startProposal();
+}
+
+// 每轮任务结束后，每个AI做一次静默复盘
+async function runReflection(){
+  const aiPlayers=G.players.filter(p=>p.type==='ai');
+  // 只让2-3个AI做反思（省token，同时也模拟人类——不是每个人每轮都深度复盘）
+  const reflectors=aiPlayers.sort(()=>Math.random()-.5).slice(0,Math.min(3,aiPlayers.length));
+  for(const p of reflectors){
+    const raw=await callAI(p,`${gameState()}
+这是一次内部复盘（不会公开发言）。请更新你的心智模型：
+1. 信念更新：基于最新的任务结果和投票记录，每个玩家是好人/坏人的概率估计（用高/中/低）
+2. 他人视角：其他人现在可能觉得你是什么身份？你的伪装/信任状况如何？
+3. 关键发现：这轮有什么新的重要线索？谁的行为和之前矛盾了？
+4. 下轮策略：下一轮你的首要目标是什么？
+
+回复：{"beliefs":"对每个人的判断","others_view":"别人怎么看你","findings":"关键线索","strategy":"下轮策略"}`,300);
+    const d=parseAIJson(raw);
+    if(d){
+      if(!G.playerStates[p.name])G.playerStates[p.name]={stances:[],reflection:''};
+      G.playerStates[p.name].reflection=`信念：${d.beliefs||''}\n他人视角：${d.others_view||''}\n发现：${d.findings||''}\n策略：${d.strategy||''}`;
+    }
+    await sleep(600);
+  }
+}
+
+// ============ ASSASSINATION ============
+async function startAssassination(){
+  G.phase='assassin';
+  addLog('⚔ 系统','正义赢得三轮！但刺客还有最后机会——指认梅林！','system');
+  const assassin=G.players.find(p=>p.role==='刺客');
+  if(!assassin){endGame('good','正义获胜！');return;}
+  if(assassin.type==='human'){
+    const gp=G.players.filter(p=>p.team==='good');
+    setAction(`<h3>你是刺客，选择梅林</h3><div class="action-buttons">${gp.map(p=>`<button class="btn evil" onclick="assassinate(${p.index})">${p.name}</button>`).join('')}</div>`);
+  }else{
+    setAction(`<h3><span class="spinner"></span>刺客正在思索…</h3>`);
+    const gn=G.players.filter(p=>p.team==='good').map(p=>p.name);
+    const raw=await callAI(assassin,`${gameState()}\n你是刺客。正义赢了3轮，这是你翻盘的唯一机会。从正义阵营中找出梅林：[${gn.join('、')}]。
+
+在think中做深度分析（这是最关键的决策，不要省字数）：
+1. 投票精准度：谁的投票和任务结果的关联度最高？谁几乎每次都"恰好"反对包含邪恶的队伍？
+2. 发言模式：谁在引导方向但措辞谨慎？谁似乎知道内情但不直说？
+3. 反面排除：谁的行为更像普通忠臣（偶尔判断错误）？谁更像派西维尔（保护某人）？
+4. 综合判断：谁最像梅林？
+
+回复：{"think":"详细分析","target":"精确玩家名","speech":"一句宣告"}`,600);
+    const d=parseAIJson(raw);
+    const target=d?.target;
+    const speech=d?.speech||parseAISpeech(raw)||'就是你。';
+    const think=d?.think||parseAIThink(raw);
+    const idx=target?G.players.findIndex(p=>p.name===target):-1;
+    if(idx>=0){addLog(assassin.name,`${speech} — 我选……${target}！`,'evil-team',think);assassinate(idx);}
+    else{const g=G.players.filter(p=>p.team==='good');assassinate(g[Math.floor(Math.random()*g.length)].index);}
+  }
+}
+function assassinate(ti){
+  const t=G.players[ti];
+  if(t.role==='梅林'){addLog('⚔ 系统',`${t.name}正是梅林！刺客命中——邪恶获胜！`,'system');endGame('evil',`刺客识破梅林（${t.name}），邪恶逆转获胜！`);}
+  else{addLog('⚔ 系统',`${t.name}是${t.role}，并非梅林！`,'system');endGame('good','刺客猜错，正义获胜！');}
+}
+function endGame(winner,msg){
+  G.phase='end';
+  const el=document.getElementById('game-over');el.classList.remove('hidden');
+  el.innerHTML=`
+    <h2 class="${winner==='good'?'good-wins':'evil-wins'}">${winner==='good'?'☀ 正义凯旋':'☠ 邪恶降临'}</h2>
+    <p style="margin-bottom:15px">${msg}</p>
+    <p style="color:var(--text-dim);font-size:.9em">${G.players.map(p=>`${p.name}：${p.role}（${p.team==='good'?'正义':'邪恶'}）`).join(' · ')}</p>
+    <button class="btn primary" style="margin-top:20px" onclick="location.reload()">再来一局</button>`;
+  setAction('');
+}
+</script>
+</body>
+</html>
