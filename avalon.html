@@ -122,6 +122,14 @@ input[type="password"]{width:320px}
         <span class="hint">本地/GitHub部署需填写</span>
       </div>
       <div class="form-row">
+        <label>模型</label>
+        <select id="model-select">
+          <option value="claude-sonnet-4-20250514" selected>Sonnet 4（快速，推荐）</option>
+          <option value="claude-opus-4-20250514">Opus 4（更聪明，较慢）</option>
+          <option value="claude-haiku-4-5-20251001">Haiku 4.5（最快，省token）</option>
+        </select>
+      </div>
+      <div class="form-row">
         <label>人数</label>
         <select id="player-count" onchange="renderPlayerSlots()">
           <option value="5">5人局</option>
@@ -219,8 +227,9 @@ function startGame(){
     }
     players.push({name,type,role:'',team:'',index:i,personality});
   }
+  const model=document.getElementById('model-select').value;
   assignRoles(players);
-  G={apiKey,players,n,questSizes:QUEST_SIZES[n],questResults:[],currentQuest:0,
+  G={apiKey,model,players,n,questSizes:QUEST_SIZES[n],questResults:[],currentQuest:0,
     leaderIndex:Math.floor(Math.random()*n),voteTrack:0,phase:'role-reveal',
     proposedTeam:[],votes:{},missionVotes:{},log:[],voteThinks:{},missionThinks:{},questHistory:[],voteHistory:[],
     playerStates:{} // 每个AI的策略状态记忆
@@ -346,7 +355,7 @@ async function callAI(player,prompt,maxTokens=200,retries=3){
   for(let att=0;att<maxRetries;att++){
     try{
       const fetchP=fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,
-        body:JSON.stringify({model:'claude-opus-4-20250514',max_tokens:maxTokens,system:sys,messages:[{role:'user',content:prompt}]})});
+        body:JSON.stringify({model:G.model,max_tokens:maxTokens,system:sys,messages:[{role:'user',content:prompt}]})});
       const timeoutP=new Promise((_,reject)=>setTimeout(()=>reject(new Error('超时')),45000));
       const r=await Promise.race([fetchP,timeoutP]);
       if(r.status===429){
