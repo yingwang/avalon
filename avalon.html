@@ -485,19 +485,24 @@ function buildSystemPrompt(p){
 - 换句话说：你越努力做正确的推理和投票，梅林就越安全，因为你们的行为模式会趋同。`;}
   const pLine=p.personality?`\n你的性格与说话方式：${p.personality}\n重要：你的名字是${p.name}，用这个名字自称，不要用其他名字。`:'';
 
-  // 好人阵营的比分紧迫性提醒
+  // 比分紧迫性提醒——双方都需要
   let urgencyHint='';
+  const gW=G.questResults.filter(r=>r==='success').length;
+  const eW=G.questResults.filter(r=>r==='fail').length;
   if(!isEvil){
-    const gW=G.questResults.filter(r=>r==='success').length;
-    const eW=G.questResults.filter(r=>r==='fail').length;
-    if(eW>=2) urgencyHint=`\n【紧急】邪恶已经赢了${eW}轮，再输一轮正义就彻底失败了！现在绝对不能冒险——不要"故意让任务失败来验证某人"，不要"钓鱼执法"。你的唯一目标是确保接下来的每一轮任务都成功。组队和投票时必须优先选择你最信任的人，排除一切可疑人选。`;
-    else if(eW===1&&gW===0) urgencyHint=`\n【注意】邪恶已领先1:0，不能再随意试探了。组队要优先用已经验证过的安全组合。`;
-    else if(gW>=2) urgencyHint=`\n正义已领先${gW}:${eW}，但不要大意——邪恶可能在关键轮发力。同时注意保护梅林，刺客正在寻找机会。`;
+    // 好人视角
+    if(eW>=2) urgencyHint=`\n【生死局】邪恶已赢${eW}轮，再输一轮正义彻底失败！绝对不能冒险——不要验证、不要试探、不要钓鱼。只用已经验证过的安全组合，确保任务成功。`;
+    else if(gW>=2) urgencyHint=`\n【胜利在望】正义已${gW}:${eW}领先，再赢一轮就结束！不需要再验证任何人——直接复用已经成功过的队伍赢下来。不要画蛇添足换人给邪恶可乘之机。同时注意保护梅林，刺客正在找机会翻盘。`;
+    else if(eW===1&&gW===0) urgencyHint=`\n【注意】邪恶领先1:0，要谨慎组队，优先用安全组合。`;
+  }else{
+    // 坏人视角
+    if(gW>=2) urgencyHint=`\n【生死局】正义已赢${gW}轮，再让他们赢一轮邪恶就输了！你必须想尽一切办法阻止——投票反对纯好人队伍、组队时塞入同伴、任务中果断出fail。现在不是建立信任的时候，是拼命的时候。`;
+    else if(eW>=2) urgencyHint=`\n【优势局】邪恶已${eW}:${gW}领先，再赢一轮就胜利！继续保持压力，但注意不要太激进暴露身份——稳扎稳打赢下来。`;
   }
 
   return `你是${p.name}，在玩阿瓦隆桌游。角色：${p.role}（${isEvil?'邪恶':'正义'}阵营）。${pLine}
 ${k}${urgencyHint}
-规则：3次成功=正义胜；3次失败=邪恶胜；5次连续否决=邪恶胜。${G.currentQuest>=4&&DOUBLE_FAIL[G.n]?'第4轮需2张失败牌。':'1张失败牌即失败。'}
+规则：3次成功=正义胜；3次失败=邪恶胜；5次连续否决=邪恶胜。${DOUBLE_FAIL[G.n]?`特殊规则：第4轮任务需要2张失败牌才算失败（1张失败牌仍然算成功）。其他轮次1张失败牌即失败。当前是第${G.currentQuest+1}轮${G.currentQuest===3?'——本轮需要2张失败牌才失败！':'。'}`:'每轮任务1张失败牌即失败。'}
 本局共${G.n}人，其中${G.n-EVIL_COUNT[G.n]}个好人、${EVIL_COUNT[G.n]}个坏人。
 
 硬性逻辑约束（你的推理绝不能违反以下事实）：
@@ -852,8 +857,10 @@ async function startMission(){
     const goodW=G.questResults.filter(r=>r==='success').length;
     const evilW=G.questResults.filter(r=>r==='fail').length;
     const evilAllies=team.filter(t=>t.team==='evil'&&t.index!==p.index);
+    const needDoubleFail=G.currentQuest===3&&DOUBLE_FAIL[G.n];
+    const doubleFailHint=needDoubleFail?`\n⚠ 本轮（第4轮）需要2张失败牌才算任务失败！只有1张失败牌任务仍然算成功。${evilAllies.length?'如果你和同伴都在队里，你们都出fail才能让任务失败——但你们无法协商。':'你是队里唯一的邪恶，你一个人出fail不够让任务失败（需要2张）。除非你想制造嫌疑，否则出fail没有意义。'}`:'';
     const raw=await callAI(p,`${gameState()}\n你在第${G.currentQuest+1}轮任务队伍中。队友：[${team.map(t=>t.name).join('、')}]。
-当前比分：正义${goodW}胜，邪恶${evilW}胜。${evilAllies.length?`你知道同伴${evilAllies.map(a=>a.name).join('、')}也在队里，但出牌是同时秘密的，你不知道同伴会出什么。`:'队里只有你一个邪恶。'}
+当前比分：正义${goodW}胜，邪恶${evilW}胜。${evilAllies.length?`你知道同伴${evilAllies.map(a=>a.name).join('、')}也在队里，但出牌是同时秘密的，你不知道同伴会出什么。`:'队里只有你一个邪恶。'}${doubleFailHint}
 
 记住：出牌是同时、秘密的，你无法和同伴协商。在think中像高手一样分析：
 1. 如果我出success，正义会赢到${goodW+1}胜。邪恶还剩几轮机会？我能保证后面还能上场吗？
@@ -969,8 +976,82 @@ function endGame(winner,msg){
     <h2 class="${winner==='good'?'good-wins':'evil-wins'}">${winner==='good'?'☀ 正义凯旋':'☠ 邪恶降临'}</h2>
     <p style="margin-bottom:15px">${msg}</p>
     <p style="color:var(--text-dim);font-size:.9em">${G.players.map(p=>`${p.name}：${p.role}（${p.team==='good'?'正义':'邪恶'}）`).join(' · ')}</p>
-    <button class="btn primary" style="margin-top:20px" onclick="location.reload()">再来一局</button>`;
+    <div style="margin-top:20px;display:flex;gap:10px;justify-content:center">
+      <button class="btn primary" onclick="location.reload()">再来一局</button>
+      <button class="btn" onclick="downloadLog()">下载对局记录</button>
+    </div>`;
   setAction('');
+}
+
+function downloadLog(){
+  const lines=[];
+  const time=new Date().toLocaleString('zh-CN');
+  lines.push(`阿瓦隆对局记录 — ${time}`);
+  lines.push(`模型：${G.model}`);
+  lines.push(`玩家：${G.n}人（好人${G.n-EVIL_COUNT[G.n]}，坏人${EVIL_COUNT[G.n]}）`);
+  lines.push('');
+
+  // 身份揭示
+  lines.push('═══ 身份分配 ═══');
+  G.players.forEach(p=>{
+    lines.push(`  ${p.name}：${p.role}（${p.team==='good'?'正义':'邪恶'}）${p.type==='human'?' [真人]':' [AI]'}`);
+  });
+  lines.push('');
+
+  // 任务历史
+  if(G.questHistory.length>0){
+    lines.push('═══ 任务历史 ═══');
+    G.questHistory.forEach(q=>{
+      lines.push(`  第${q.round}轮：队伍 [${q.team.join('、')}] → ${q.result}（${q.failCount}张失败牌）`);
+    });
+    lines.push('');
+  }
+
+  // 投票历史
+  if(G.voteHistory.length>0){
+    lines.push('═══ 投票历史 ═══');
+    G.voteHistory.forEach(v=>{
+      const app=v.votes.filter(x=>x.vote==='approve').map(x=>x.name);
+      const rej=v.votes.filter(x=>x.vote==='reject').map(x=>x.name);
+      lines.push(`  第${v.round}轮 队长${v.leader} 提议 [${v.team.join('、')}] → ${v.passed?'通过':'否决'}`);
+      lines.push(`    赞成：${app.join('、')||'无'}`);
+      lines.push(`    反对：${rej.join('、')||'无'}`);
+    });
+    lines.push('');
+  }
+
+  // 完整对话日志
+  lines.push('═══ 完整对话记录 ═══');
+  G.log.forEach(l=>{
+    lines.push(`[${l.cls}] ${l.speaker}：${l.msg}`);
+  });
+  lines.push('');
+
+  // AI思考记录（从日志中带think的条目）
+  const thinkEntries=document.querySelectorAll('.think-block');
+  if(thinkEntries.length>0){
+    lines.push('═══ AI思考记录（隐藏内容）═══');
+    thinkEntries.forEach(el=>{
+      const speaker=el.parentElement?.querySelector('.speaker')?.textContent?.replace('[思考]','').trim()||'';
+      lines.push(`[${speaker}] ${el.textContent.trim()}`);
+    });
+    lines.push('');
+  }
+
+  // 最终结果
+  lines.push('═══ 最终结果 ═══');
+  const gw=G.questResults.filter(r=>r==='success').length;
+  const ew=G.questResults.filter(r=>r==='fail').length;
+  lines.push(`  比分：正义 ${gw} : ${ew} 邪恶`);
+  lines.push(`  结局：${G.phase==='end'?(gw>=3?'正义获胜':'邪恶获胜'):'未结束'}`);
+
+  const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`avalon_${new Date().toISOString().slice(0,10)}_${Date.now()%10000}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 </script>
 </body>
