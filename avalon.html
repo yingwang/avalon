@@ -261,7 +261,7 @@ function renderPlayers(sel,onSel){
     c.textContent=p.name;el.appendChild(c);});
 }
 function addLog(speaker,msg,cls='neutral',think=null){
-  G.log.push({speaker,msg,cls});
+  G.log.push({speaker,msg,cls,think});
   const el=document.getElementById('game-log');
   const e=document.createElement('div');e.className='log-entry';
   const tid='t-'+Date.now()+'-'+Math.random().toString(36).slice(2,5);
@@ -873,9 +873,6 @@ async function startMission(){
     const isFail=/fail|失败/i.test(actionRaw);
     G.missionVotes[p.index]=isFail?'fail':'success';
     G.missionThinks[p.index]=d?.think||parseAIThink(raw);
-    if(!isFail&&G.missionThinks[p.index]&&/必须出fail|我出fail|出失败|选择失败|打出失败/.test(G.missionThinks[p.index])){
-      G.missionVotes[p.index]='fail';
-    }
     await sleep(800);
   }
   if(human&&G.proposedTeam.includes(human.index)){
@@ -986,71 +983,81 @@ function endGame(winner,msg){
 function buildLogText(){
   const lines=[];
   const time=new Date().toLocaleString('zh-CN');
-  lines.push(`阿瓦隆对局记录 — ${time}`);
-  lines.push(`模型：${G.model}`);
-  lines.push(`玩家：${G.n}人（好人${G.n-EVIL_COUNT[G.n]}，坏人${EVIL_COUNT[G.n]}）`);
-  lines.push('');
-  lines.push('═══ 身份分配 ═══');
-  G.players.forEach(p=>{
-    lines.push(`  ${p.name}：${p.role}（${p.team==='good'?'正义':'邪恶'}）${p.type==='human'?' [真人]':' [AI]'}`);
-  });
-  lines.push('');
-  if(G.questHistory.length>0){
-    lines.push('═══ 任务历史 ═══');
-    G.questHistory.forEach(q=>{
-      lines.push(`  第${q.round}轮：[${q.team.join('、')}] → ${q.result}（${q.failCount}张失败牌）`);
-    });
-    lines.push('');
-  }
-  if(G.voteHistory.length>0){
-    lines.push('═══ 投票历史 ═══');
-    G.voteHistory.forEach(v=>{
-      const app=v.votes.filter(x=>x.vote==='approve').map(x=>x.name);
-      const rej=v.votes.filter(x=>x.vote==='reject').map(x=>x.name);
-      lines.push(`  第${v.round}轮 队长${v.leader} → [${v.team.join('、')}] ${v.passed?'✓通过':'✗否决'}`);
-      lines.push(`    赞成：${app.join('、')||'无'}  反对：${rej.join('、')||'无'}`);
-    });
-    lines.push('');
-  }
-  lines.push('═══ 完整对话 ═══');
-  G.log.forEach(l=>{ lines.push(`${l.speaker}：${l.msg}`); });
-  lines.push('');
-  const thinkEntries=document.querySelectorAll('.think-block');
-  if(thinkEntries.length>0){
-    lines.push('═══ AI思考（隐藏）═══');
-    thinkEntries.forEach(el=>{
-      const speaker=el.parentElement?.querySelector('.speaker')?.textContent?.replace('[思考]','').trim()||'';
-      lines.push(`[${speaker}] ${el.textContent.trim()}`);
-    });
-    lines.push('');
-  }
   const gw=G.questResults.filter(r=>r==='success').length;
   const ew=G.questResults.filter(r=>r==='fail').length;
-  lines.push('═══ 最终结果 ═══');
-  lines.push(`  比分：正义 ${gw} : ${ew} 邪恶 — ${gw>=3?'正义获胜':'邪恶获胜'}`);
+  lines.push(`# 阿瓦隆对局记录`);
+  lines.push(`${time} | 模型：${G.model} | ${G.n}人局（好人${G.n-EVIL_COUNT[G.n]}，坏人${EVIL_COUNT[G.n]}）`);
+  lines.push(`结果：正义 ${gw} : ${ew} 邪恶 — ${gw>=3?'正义获胜':'邪恶获胜'}`);
+  lines.push('');
+  lines.push('## 身份');
+  G.players.forEach(p=>{
+    lines.push(`- ${p.name}：${p.role}（${p.team==='good'?'正义':'邪恶'}）${p.type==='human'?' 👤真人':''}`);
+  });
+  lines.push('');
+  lines.push('## 对局过程');
+  G.log.forEach(l=>{
+    lines.push(`**${l.speaker}**：${l.msg}`);
+    if(l.think) lines.push(`  _💭 ${l.think.replace(/\n/g,' ')}_`);
+  });
   return lines.join('\n');
 }
 
 function showGameLog(){
-  const text=buildLogText();
-  const panel=document.getElementById('action-panel');
-  panel.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+  const gw=G.questResults.filter(r=>r==='success').length;
+  const ew=G.questResults.filter(r=>r==='fail').length;
+  const time=new Date().toLocaleString('zh-CN');
+
+  let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
     <h3>对局记录</h3>
-    <button class="btn" id="copy-log-btn" onclick="copyLog()">复制全部</button>
+    <button class="btn" id="copy-log-btn" onclick="copyLog()">复制文本</button>
   </div>
-  <pre id="log-text" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:15px;max-height:500px;overflow-y:auto;font-family:'Noto Sans SC',sans-serif;font-size:.82em;line-height:1.7;color:var(--text);white-space:pre-wrap;word-break:break-all;cursor:text;user-select:text">${text.replace(/</g,'&lt;')}</pre>`;
+  <div id="log-rendered" style="font-size:.88em;line-height:1.8;color:var(--text)">`;
+
+  // 头部信息
+  html+=`<div style="padding:12px 16px;background:var(--surface2);border-radius:6px;margin-bottom:16px">
+    <div style="font-family:'Noto Serif SC',serif;font-size:1.1em;color:var(--gold);margin-bottom:6px">阿瓦隆 — ${gw>=3?'正义获胜':'邪恶获胜'} (${gw}:${ew})</div>
+    <div style="color:var(--text-dim);font-size:.82em">${time} · 模型 ${G.model} · ${G.n}人局</div>
+    <div style="margin-top:8px">${G.players.map(p=>{
+      const c=p.team==='good'?'var(--good-glow)':'var(--evil-glow)';
+      return `<span style="color:${c}">${p.name}(${p.role})</span>`;
+    }).join(' · ')}</div>
+  </div>`;
+
+  // 时间线
+  G.log.forEach(l=>{
+    const isSystem=l.cls==='system';
+    const color=l.cls==='good-team'?'var(--good-glow)':l.cls==='evil-team'?'var(--evil-glow)':l.cls==='system'?'var(--gold-dim)':'var(--text-dim)';
+
+    if(isSystem){
+      html+=`<div style="padding:6px 0;color:var(--gold-dim);font-size:.85em;border-bottom:1px solid var(--border);margin:4px 0">⚔ ${l.msg}</div>`;
+    }else{
+      html+=`<div style="padding:8px 0;border-bottom:1px solid rgba(42,42,58,.3)">`;
+      html+=`<span style="font-family:'Noto Serif SC',serif;font-weight:600;color:${color}">${l.speaker}</span>`;
+      html+=`<span style="margin-left:8px">${l.msg}</span>`;
+      if(l.think){
+        html+=`<div style="margin-top:4px;padding:6px 10px;background:rgba(255,255,255,.02);border-left:2px solid var(--border);color:var(--text-dim);font-size:.85em;font-style:italic;line-height:1.5">💭 ${l.think.replace(/\n/g,'<br>')}</div>`;
+      }
+      html+=`</div>`;
+    }
+  });
+
+  html+=`</div>`;
+
+  // 替换整个game-screen内容
+  const panel=document.getElementById('action-panel');
+  panel.style.maxHeight='none';
+  panel.innerHTML=html;
 }
 
 function copyLog(){
-  const el=document.getElementById('log-text');
-  if(!el)return;
-  const text=el.textContent;
+  const text=buildLogText();
   navigator.clipboard.writeText(text).then(()=>{
     const btn=document.getElementById('copy-log-btn');
     btn.textContent='✓ 已复制';btn.style.color='var(--success)';btn.style.borderColor='var(--success)';
-    setTimeout(()=>{btn.textContent='复制全部';btn.style.color='';btn.style.borderColor='';},2000);
+    setTimeout(()=>{btn.textContent='复制文本';btn.style.color='';btn.style.borderColor='';},2000);
   }).catch(()=>{
-    // fallback
+    // fallback: 选中文本
+    const el=document.getElementById('log-rendered');
     const range=document.createRange();range.selectNodeContents(el);
     const sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);
     document.execCommand('copy');
