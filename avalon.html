@@ -733,8 +733,19 @@ async function startDiscussion(){
   for(const p of speakers){
     setAction(`<h3><span class="spinner"></span>${p.name} 正在思考…</h3>`);
     let reasonHint='';
+    const onTeam=G.proposedTeam.includes(p.index);
+    const teamSize=G.proposedTeam.length;
+    const nEvil=EVIL_COUNT[G.n];
+    const nGood=G.n-nEvil;
     if(p.team==='good'){
-      reasonHint=`\n你是好人，你的推理必须严格正确：K张失败牌=恰好K个坏人（一人只能出一张牌）。不要说"至少其中之一"这种模糊说法——2张失败就是2个坏人，这是确定的。`;
+      reasonHint=`\n你是好人，你的推理必须严格正确：K张失败牌=恰好K个坏人。`;
+      if(!onTeam){
+        const maxGoodOnTeam=nGood-1; // 自己是好人在队外，队里最多这么多好人
+        const minEvilOnTeam=Math.max(0,teamSize-maxGoodOnTeam);
+        if(minEvilOnTeam>0){
+          reasonHint+=`\n【人数推理】你是好人且不在队伍中。本局${nGood}好人${nEvil}坏人，你在队外，所以队里最多${maxGoodOnTeam}个好人、至少${minEvilOnTeam}个坏人。这个队伍里确定有坏人！`;
+        }
+      }
     }else{
       reasonHint=`\n你在think中要做正确的数学推理（K张失败=K个坏人），但speech中你可以故意模糊、混淆、引导错误方向来保护自己和同伴——这是伪装策略。`;
     }
